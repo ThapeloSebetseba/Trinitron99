@@ -73,14 +73,26 @@
 
     <script>
         let model;
+        let labels = [];
 
         async function loadModel() {
             try {
-                model = await tf.loadLayersModel('https://thapelosebetseba.github.io/geofy_model/model.json'); // Replace with your actual URL
+                model = await tf.loadLayersModel('https://thapelosebetseba.github.io/geofy_model/model.json');
                 console.log("✅ Model Loaded Successfully");
             } catch (error) {
                 console.error("🚨 Model Loading Failed:", error);
                 document.getElementById("predictions").innerHTML = "<p style='color: red;'>Error: Model failed to load.</p>";
+            }
+        }
+
+        async function loadLabels() {
+            try {
+                const response = await fetch('https://thapelosebetseba.github.io/geofy_model/metadata.json');
+                const metadata = await response.json();
+                labels = metadata.labels;
+                console.log("✅ Labels Loaded Successfully", labels);
+            } catch (error) {
+                console.error("🚨 Labels Loading Failed:", error);
             }
         }
 
@@ -99,25 +111,10 @@
             let predictions = await model.predict(tensor).data();
             console.log("🔍 Raw Predictions:", predictions);
 
-            let labels = [
-                "Aegirine", "Andalusite", "Andradite", "Anglesite", "Antimony", "Apatite", "Aragonite",
-                "Azurite", "Barite", "Basalt", "Biotite", "Bornite", "Brucite", "Calcite", "Cassiterite",
-                "Celestine", "Cerussite", "Chalcopyrite", "Chalcocite", "Chromite", "Chrysoberyl",
-                "Chrysocolla", "Copper", "Cordierite", "Corundum", "Cuprite", "Descloizite", "Diamond",
-                "Diopside", "Dioptase", "Dolomite", "Elbaite", "Epidote", "Ettringite", "Ferberite",
-                "Fluorite", "Galena", "Gold", "Graphite", "Grossular", "Gypsum", "Hematite", "Inesite",
-                "Kyanite", "Lepidolite", "Magnetite", "Malachite", "Marcasite", "Mimetite", "Molybdenite",
-                "Muscovite", "Natrolite", "Orthoclase", "Prehnite", "Pyrite", "Pyrolusite", "Pyrrhotite",
-                "Quartz", "Rhodochrosite", "Rutile", "Scheelite", "Schorl", "Siderite", "Smithsonite",
-                "Spessartine", "Sphalerite", "Spinel", "Stibnite", "Stilbite", "Talc", "Tantalite",
-                "Titanite", "Topaz"
-            ]; // Replace with your trained model's labels
-
-            // Sort predictions in descending order and get top 5
             let topPredictions = Array.from(predictions)
                 .map((prob, index) => ({ label: labels[index], probability: prob }))
                 .sort((a, b) => b.probability - a.probability)
-                .slice(0, 5); // Show top 5 predictions
+                .slice(0, 5);
 
             let resultsHTML = `<h3><b>Predictions:</b></h3>`;
             topPredictions.forEach(pred => {
@@ -144,6 +141,7 @@
         });
 
         loadModel();
+        loadLabels();
     </script>
 </body>
 </html>
