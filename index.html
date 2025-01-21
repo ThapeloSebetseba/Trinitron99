@@ -85,14 +85,14 @@
             }
         }
 
-        async function loadLabels() {
+        async function loadMetadata() {
             try {
-                const response = await fetch('https://thapelosebetseba.github.io/geofy_model/metadata.json');
-                const metadata = await response.json();
-                labels = metadata.labels;
-                console.log("✅ Labels Loaded Successfully", labels);
-            } catch (error) {
-                console.error("🚨 Labels Loading Failed:", error);
+                let response = await fetch('https://thapelosebetseba.github.io/geofy_model/metadata.json'); // Adjust path if necessary
+                let metadata = await response.json();
+                return metadata.labels; // Ensure the labels are correctly retrieved
+            }  catch (error) {
+                console.error("🚨 Failed to load metadata.json:", error);
+                return [];
             }
         }
 
