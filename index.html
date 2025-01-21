@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geofy Model Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            margin: auto;
+        }
+
+        input {
+            margin: 10px 0;
+        }
+
+        img {
+            display: block;
+            max-width: 100%;
+            margin: 10px auto;
+            border-radius: 5px;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        #predictions {
+            text-align: left;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        .prediction {
+            margin: 5px 0;
+            padding: 8px;
+            background: #e0f7fa;
+            border-radius: 5px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #00796b;
+        }
+
+        .percentage {
+            float: right;
+            color: #d84315;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Geofy Model Test</h1>
+    <div id="container">
+        <input type="file" id="imageUpload" accept="image/*">
+        <img id="preview" width="200px">
+        <div id="predictions"></div>
+    </div>
+
+    <script>
+        let model;
+
+        async function loadModel() {
+            try {
+                model = await tf.loadLayersModel('https://thapelosebetseba.github.io/geofy_model/model.json'); // Replace with your actual URL
+                console.log("✅ Model Loaded Successfully");
+            } catch (error) {
+                console.error("🚨 Model Loading Failed:", error);
+                document.getElementById("predictions").innerHTML = "<p style='color: red;'>Error: Model failed to load.</p>";
+            }
+        }
+
+        async function classifyImage() {
+            if (!model) {
+                alert("Model is still loading. Please wait...");
+                return;
+            }
+
+            let imageElement = document.getElementById("preview");
+            let tensor = tf.browser.fromPixels(imageElement)
+                .resizeNearestNeighbor([224, 224])
+                .toFloat()
+                .expandDims();
+
+            let predictions = await model.predict(tensor).data();
+            console.log("🔍 Raw Predictions:", predictions);
+
+            let labels = [
+                "Aegirine", "Andalusite", "Andradite", "Anglesite", "Antimony", "Apatite", "Aragonite",
+                "Azurite", "Barite", "Basalt", "Biotite", "Bornite", "Brucite", "Calcite", "Cassiterite",
+                "Celestine", "Cerussite", "Chalcopyrite", "Chalcocite", "Chromite", "Chrysoberyl",
+                "Chrysocolla", "Copper", "Cordierite", "Corundum", "Cuprite", "Descloizite", "Diamond",
+                "Diopside", "Dioptase", "Dolomite", "Elbaite", "Epidote", "Ettringite", "Ferberite",
+                "Fluorite", "Galena", "Gold", "Graphite", "Grossular", "Gypsum", "Hematite", "Inesite",
+                "Kyanite", "Lepidolite", "Magnetite", "Malachite", "Marcasite", "Mimetite", "Molybdenite",
+                "Muscovite", "Natrolite", "Orthoclase", "Prehnite", "Pyrite", "Pyrolusite", "Pyrrhotite",
+                "Quartz", "Rhodochrosite", "Rutile", "Scheelite", "Schorl", "Siderite", "Smithsonite",
+                "Spessartine", "Sphalerite", "Spinel", "Stibnite", "Stilbite", "Talc", "Tantalite",
+                "Titanite", "Topaz"
+            ]; // Replace with your trained model's labels
+
+            // Sort predictions in descending order and get top 5
+            let topPredictions = Array.from(predictions)
+                .map((prob, index) => ({ label: labels[index], probability: prob }))
+                .sort((a, b) => b.probability - a.probability)
+                .slice(0, 5); // Show top 5 predictions
+
+            let resultsHTML = `<h3><b>Predictions:</b></h3>`;
+            topPredictions.forEach(pred => {
+                resultsHTML += `<div class="prediction">
+                                    <span class="label">${pred.label}</span>
+                                    <span class="percentage">${(pred.probability * 100).toFixed(2)}%</span>
+                                </div>`;
+            });
+
+            document.getElementById("predictions").innerHTML = resultsHTML;
+        }
+
+        document.getElementById("imageUpload").addEventListener("change", function (event) {
+            let file = event.target.files[0];
+            if (!file) return;
+
+            let reader = new FileReader();
+            reader.onload = function () {
+                let img = document.getElementById("preview");
+                img.src = reader.result;
+                img.onload = classifyImage;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        loadModel();
+    </script>
+</body>
+</html>
