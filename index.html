@@ -291,7 +291,7 @@
 
     async function loadModel() {
       try {
-        model = await tf.loadLayersModel("https://github.com/ThapeloSebetseba/mintelx/model.json"); // Adjust path if needed
+        model = await tf.loadLayersModel('https://github.com/ThapeloSebetseba/mintelx/model.json'); // Adjust path if needed
         console.log("✅ Model Loaded Successfully");
       } catch (error) {
         console.error("🚨 Model Loading Failed:", error);
@@ -302,7 +302,7 @@
 
     async function loadMetadata() {
       try {
-        let response = await fetch("https://github.com/ThapeloSebetseba/mintelx/metadata.json"); // Ensure accessibility
+        let response = await fetch('https://github.com/ThapeloSebetseba/mintelx/metadata.json'); // Ensure accessibility
         let metadata = await response.json();
         labels = metadata.labels || [];
         console.log("✅ Labels Loaded Successfully", labels);
