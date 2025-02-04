@@ -231,10 +231,7 @@
       h1 {
         font-size: 1.5em;
       }
-      input[type="file"], #cameraButton, #captureButton {
-        font-size: 0.9em;
-        padding: 10px 15px;
-      }
+      /* Buttons remain constant in size; we do not adjust their font-size/padding */
     }
   </style>
 </head>
@@ -340,11 +337,26 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      adjustCamera();
     });
     window.updateFloatingTexts = function(newLabels) {
       labelsForText = newLabels;
       createFloatingTexts();
+    };
+
+    // Dynamic resolution adjustment for Three.js to accommodate smaller devices.
+    // This function adjusts the camera's field-of-view to keep the floating texts at a consistent size.
+    const originalFov = camera.fov;
+    function adjustCamera() {
+      if (window.innerWidth < 600) {
+        // Adjust the FOV inversely proportional to the window width (maintaining text size)
+        camera.fov = originalFov * (600 / window.innerWidth);
+      } else {
+        camera.fov = originalFov;
+      }
+      camera.updateProjectionMatrix();
     }
+    adjustCamera();
   </script>
 
   <!-- TensorFlow.js Classification & Sample Data for Details & Chart.js Graph -->
@@ -355,7 +367,7 @@
     async function loadModel() {
       try {
         // Use the raw GitHub URL for your model.json file.
-        model = await tf.loadLayersModel('https://thapelosebetseba.github.io/mintelx/model.json');
+        model = await tf.loadLayersModel('https://thapelosebetseba.github.io/geofy_model/model.json');
         console.log("✅ Model Loaded Successfully");
       } catch (error) {
         console.error("🚨 Model Loading Failed:", error);
@@ -367,7 +379,7 @@
     async function loadMetadata() {
       try {
         // Use the raw GitHub URL for your metadata.json file.
-        let response = await fetch('https://thapelosebetseba.github.io/mintelx/metadata.json');
+        let response = await fetch('https://thapelosebetseba.github.io/geofy_model/metadata.json');
         let metadata = await response.json();
         labels = metadata.labels || [];
         console.log("✅ Labels Loaded Successfully", labels);
@@ -567,6 +579,23 @@ This mineral is typically found in geologically diverse regions, including mount
       videoElem.setAttribute("playsinline", "");
       document.querySelector(".container").appendChild(videoElem);
     }
+  </script>
+  
+  <!-- Dynamic Resolution Adjustment Script for Three.js -->
+  <script>
+    // Adjust the Three.js camera's field of view (FOV) for smaller devices,
+    // so that the floating text remains undistorted and consistent in size.
+    const originalFov = camera.fov;
+    function adjustCamera() {
+      if (window.innerWidth < 600) {
+        camera.fov = originalFov * (600 / window.innerWidth);
+      } else {
+        camera.fov = originalFov;
+      }
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', adjustCamera);
+    adjustCamera();
   </script>
 </body>
 </html>
