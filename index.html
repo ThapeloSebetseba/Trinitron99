@@ -291,7 +291,7 @@
 
     async function loadModel() {
       try {
-        // Update the URL to the raw GitHub URL for your model.json file.
+        // Use the raw GitHub URL for your model.json file.
         model = await tf.loadLayersModel("https://raw.githubusercontent.com/ThapeloSebetseba/mintelx/main/model.json");
         console.log("✅ Model Loaded Successfully");
       } catch (error) {
@@ -303,7 +303,7 @@
 
     async function loadMetadata() {
       try {
-        // Update the URL to the raw GitHub URL for your metadata.json file.
+        // Use the raw GitHub URL for your metadata.json file.
         let response = await fetch("https://raw.githubusercontent.com/ThapeloSebetseba/mintelx/main/metadata.json");
         let metadata = await response.json();
         labels = metadata.labels || [];
