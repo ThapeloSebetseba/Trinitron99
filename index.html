@@ -367,7 +367,7 @@
     async function loadModel() {
       try {
         // Use the raw GitHub URL for your model.json file.
-        model = await tf.loadLayersModel('https://thapelosebetseba.github.io/geofy_model/model.json');
+        model = await tf.loadLayersModel('https://thapelosebetseba.github.io/mintelx/model.json');
         console.log("✅ Model Loaded Successfully");
       } catch (error) {
         console.error("🚨 Model Loading Failed:", error);
@@ -379,7 +379,7 @@
     async function loadMetadata() {
       try {
         // Use the raw GitHub URL for your metadata.json file.
-        let response = await fetch('https://thapelosebetseba.github.io/geofy_model/metadata.json');
+        let response = await fetch('https://thapelosebetseba.github.io/mintelx/metadata.json');
         let metadata = await response.json();
         labels = metadata.labels || [];
         console.log("✅ Labels Loaded Successfully", labels);
