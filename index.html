@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- The viewport meta tag is set for responsive scaling -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mineral Intelligence (MintelX) – Detailed Mineral Info (Demo)</title>
   <!-- TensorFlow.js -->
@@ -67,8 +68,17 @@
       to { opacity: 1; transform: translateY(0); }
     }
     h1 { margin-bottom: 20px; font-size: 1.8em; color: var(--text-color); }
+    
+    /* Container for file input and camera button */
+    .upload-options {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
     input[type="file"] {
-      display: inline-block;
       padding: 12px 20px;
       background: var(--accent-color);
       border: none;
@@ -77,9 +87,45 @@
       font-size: 1em;
       cursor: pointer;
       transition: background 0.3s ease;
-      margin-bottom: 20px;
     }
     input[type="file"]:hover { background: #0e8e6e; }
+    
+    /* Always visible camera button, placed next to the file input */
+    #cameraButton {
+      padding: 12px 20px;
+      background: var(--accent-color);
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    #cameraButton:hover { background: #0e8e6e; }
+    
+    /* Hide the capture button by default; will show when camera is activated */
+    #captureButton {
+      display: none;
+      padding: 12px 20px;
+      background: var(--accent-color);
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      margin-top: 10px;
+    }
+    #captureButton:hover { background: #0e8e6e; }
+    
+    /* Video element for live camera feed (hidden until activated) */
+    #video {
+      display: none;
+      width: 100%;
+      margin: 20px auto;
+      border-radius: 8px;
+    }
+    
     /* Initially hide the image preview element */
     #preview {
       display: none;
@@ -90,6 +136,7 @@
       transition: transform 0.3s ease;
     }
     #preview:hover { transform: scale(1.05); }
+    
     /* Predictions with animated progress bars */
     #predictions {
       margin-top: 20px;
@@ -175,6 +222,20 @@
       border-radius: 4px;
       padding: 10px;
     }
+    /* Mobile styles */
+    @media (max-width: 600px) {
+      .container {
+        padding: 15px;
+        margin: 20px;
+      }
+      h1 {
+        font-size: 1.5em;
+      }
+      input[type="file"], #cameraButton, #captureButton {
+        font-size: 0.9em;
+        padding: 10px 15px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -184,8 +245,16 @@
   <!-- Main foreground container -->
   <div class="container">
     <h1>Mineral Intelligence (MintelX)</h1>
-    <input type="file" id="imageUpload" accept="image/*">
-    <!-- The image preview element is hidden until an image is uploaded -->
+    <!-- Container to hold file upload and camera button side by side -->
+    <div class="upload-options">
+      <input type="file" id="imageUpload" accept="image/*">
+      <button id="cameraButton">Use Camera</button>
+    </div>
+    <!-- Video element for live camera feed -->
+    <video id="video" autoplay playsinline></video>
+    <!-- Capture button for taking a photo from the camera -->
+    <button id="captureButton">Capture Photo</button>
+    <!-- The image preview element is hidden until an image is uploaded or captured -->
     <img id="preview" alt="Image Preview" width="200">
     <div id="predictions"></div>
     <!-- Detail container: Left panel (Origins), Right panel (Description + line graph) -->
@@ -226,19 +295,16 @@
     function createFloatingTexts() {
       const loader = new FontLoader();
       loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', (font) => {
-        // Clear previous texts
         textGroup.clear();
         const n = labelsForText.length;
-        // Use the spherical Fibonacci algorithm for even distribution
         for (let i = 0; i < n; i++) {
           const offset = 2 / n;
-          const y = ((i * offset) - 1) + (offset / 2);  // y in [-1,1]
+          const y = ((i * offset) - 1) + (offset / 2);
           const r = Math.sqrt(1 - y * y);
           const increment = Math.PI * (3 - Math.sqrt(5));
           const theta = i * increment;
           const x = Math.cos(theta) * r;
           const z = Math.sin(theta) * r;
-          // Multiply by a factor to spread them out (adjust radius as needed)
           const radius = 50;
           const geometry = new TextGeometry(labelsForText[i], {
             font: font,
@@ -261,12 +327,9 @@
 
     function animate() {
       requestAnimationFrame(animate);
-      // Slowly rotate the entire group
       textGroup.rotation.y += 0.001;
       textGroup.rotation.x += 0.0005;
-      // For each text mesh, force it to face the camera while remaining upright
       textGroup.children.forEach(child => {
-        // Create a vector at the camera's xz but child's own y value
         const target = new THREE.Vector3(camera.position.x, child.position.y, camera.position.z);
         child.lookAt(target);
       });
@@ -308,7 +371,6 @@
         let metadata = await response.json();
         labels = metadata.labels || [];
         console.log("✅ Labels Loaded Successfully", labels);
-        // Update the floating 3D texts with class names from metadata
         window.updateFloatingTexts(labels);
       } catch (error) {
         console.error("🚨 Failed to load metadata.json:", error);
@@ -317,14 +379,12 @@
 
     // Sample data for the left panel (Origins)
     async function fetchMineralOriginsFromChatGPT(label) {
-      // Return sample origins information.
       return `Sample Origins for ${label}:  
 This mineral is typically found in geologically diverse regions, including mountainous and sedimentary formations. It is extracted from deposits formed over millions of years.`;
     }
 
     // Sample data for the right panel (Detailed Description)
     async function fetchMineralDetailsFromChatGPT(label) {
-      // Return a sample detailed description.
       return `Sample Detailed Description for ${label}:  
 - **Commodity Uses:** Widely used in electronics, jewelry, and industrial applications.  
 - **Typical Mining Locations:** Regions in North America, South Africa, and Australia.  
@@ -332,7 +392,6 @@ This mineral is typically found in geologically diverse regions, including mount
 - **Current Market Price:** Approximately $X per unit (subject to market fluctuations).`;
     }
 
-    // Render an interactive line chart with dummy historical data
     function renderLineChart(label) {
       const years = [];
       const amounts = [];
@@ -378,7 +437,6 @@ This mineral is typically found in geologically diverse regions, including mount
       });
     }
 
-    // Classify the image, update animated prediction bars, and update detail panels
     async function classifyImage() {
       if (!model || labels.length === 0) {
         alert("Model or labels are not yet loaded. Please wait...");
@@ -396,7 +454,17 @@ This mineral is typically found in geologically diverse regions, including mount
         .sort((a, b) => b.probability - a.probability)
         .slice(0, 5);
       
-      // Build predictions HTML with animated progress bars
+      // Check if the highest prediction is below a threshold or is "Unknown"
+      const threshold = 0.2;
+      const topResult = topPredictions[0];
+      if (topResult.probability < threshold || topResult.label === "Unknown") {
+          document.getElementById("predictions").innerHTML = "<h3>Predictions:</h3><p>Not a Mineral</p>";
+          document.getElementById("leftPanel").innerHTML = "<h3>Origins</h3><p>Not a Mineral</p>";
+          document.getElementById("rightPanel").innerHTML = "<h3>Description</h3><p>Not a Mineral</p>";
+          document.getElementById("detailContainer").style.display = "flex";
+          return;
+      }
+      
       let resultsHTML = `<h3>Predictions:</h3>`;
       topPredictions.forEach((pred, index) => {
         const percentage = (pred.probability * 100).toFixed(2);
@@ -412,31 +480,22 @@ This mineral is typically found in geologically diverse regions, including mount
       });
       document.getElementById("predictions").innerHTML = resultsHTML;
       
-      // Animate each progress bar using GSAP
       document.querySelectorAll('.bar-fill').forEach(bar => {
         const perc = bar.getAttribute('data-percentage');
         gsap.to(bar, { duration: 1, width: perc + "%", ease: "power1.out" });
       });
       
-      // Use the top prediction for detailed info if available
-      if (topPredictions.length > 0) {
-        const topResult = topPredictions[0];
-        // Left panel: fetch origins using sample data
-        document.getElementById("leftPanel").innerHTML = "<h3>Origins</h3><p>Loading origins…</p>";
-        const originsInfo = await fetchMineralOriginsFromChatGPT(topResult.label);
-        let leftContent = `<h3>Origins</h3><p>${originsInfo}</p>`;
-        document.getElementById("leftPanel").innerHTML = leftContent;
-        
-        // Right panel: fetch detailed description using sample data
-        document.getElementById("rightPanel").innerHTML = "<h3>Description</h3><p>Loading detailed information…</p><canvas id='lineChart'></canvas>";
-        const detailedInfo = await fetchMineralDetailsFromChatGPT(topResult.label);
-        document.getElementById("rightPanel").innerHTML = `<h3>Description</h3><p>${detailedInfo}</p><canvas id="lineChart"></canvas>`;
-        
-        // Render the interactive line graph (dummy historical data)
-        renderLineChart(topResult.label);
-        // Reveal the detail container
-        document.getElementById("detailContainer").style.display = "flex";
-      }
+      // Fetch sample details for the top prediction
+      document.getElementById("leftPanel").innerHTML = "<h3>Origins</h3><p>Loading origins…</p>";
+      const originsInfo = await fetchMineralOriginsFromChatGPT(topResult.label);
+      document.getElementById("leftPanel").innerHTML = `<h3>Origins</h3><p>${originsInfo}</p>`;
+      
+      document.getElementById("rightPanel").innerHTML = "<h3>Description</h3><p>Loading detailed information…</p><canvas id='lineChart'></canvas>";
+      const detailedInfo = await fetchMineralDetailsFromChatGPT(topResult.label);
+      document.getElementById("rightPanel").innerHTML = `<h3>Description</h3><p>${detailedInfo}</p><canvas id="lineChart"></canvas>`;
+      
+      renderLineChart(topResult.label);
+      document.getElementById("detailContainer").style.display = "flex";
     }
 
     document.getElementById("imageUpload").addEventListener("change", function (event) {
@@ -446,7 +505,6 @@ This mineral is typically found in geologically diverse regions, including mount
       reader.onload = function () {
         const img = document.getElementById("preview");
         img.src = reader.result;
-        // Show the image preview once uploaded
         img.style.display = "block";
         img.onload = classifyImage;
       };
@@ -455,6 +513,60 @@ This mineral is typically found in geologically diverse regions, including mount
 
     loadModel();
     loadMetadata();
+  </script>
+
+  <!-- Mobile Camera Support Script -->
+  <script>
+    // Always show the camera button next to the file input
+    const cameraButton = document.getElementById("cameraButton");
+    const captureButton = document.getElementById("captureButton");
+    const video = document.getElementById("video");
+    
+    cameraButton.addEventListener("click", async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
+        video.style.display = "block";
+        captureButton.style.display = "inline-block";
+      } catch (err) {
+        alert("Unable to access camera: " + err);
+      }
+    });
+    
+    captureButton.addEventListener("click", () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext("2d");
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataURL = canvas.toDataURL("image/jpeg");
+      const img = document.getElementById("preview");
+      img.src = dataURL;
+      img.style.display = "block";
+      classifyImage();
+      const stream = video.srcObject;
+      const tracks = stream.getTracks();
+      tracks.forEach(track => track.stop());
+      video.style.display = "none";
+      captureButton.style.display = "none";
+    });
+  </script>
+  
+  <!-- Ensure camera capture elements exist -->
+  <script>
+    if (!document.getElementById("captureButton")) {
+      const captureBtn = document.createElement("button");
+      captureBtn.id = "captureButton";
+      captureBtn.textContent = "Capture Photo";
+      document.querySelector(".container").appendChild(captureBtn);
+    }
+    if (!document.getElementById("video")) {
+      const videoElem = document.createElement("video");
+      videoElem.id = "video";
+      videoElem.setAttribute("autoplay", "");
+      videoElem.setAttribute("playsinline", "");
+      document.querySelector(".container").appendChild(videoElem);
+    }
   </script>
 </body>
 </html>
