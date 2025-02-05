@@ -34,7 +34,7 @@
       --accent-color: #10a37f;
       --shadow-color: rgba(0, 0, 0, 0.5);
     }
-    /* Global reset & base styles inspired by ChatGPT */
+    /* Global reset & base styles */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -94,9 +94,14 @@
       flex-wrap: wrap; /* allow wrapping on smaller screens */
     }
 
-    /* Make buttons maintain the same size across devices */
-    .upload-options input[type="file"],
-    .upload-options #cameraButton {
+    /* 
+      1) Hide the original input
+      2) Use a <label> that matches the camera button styling
+    */
+    input[type="file"] {
+      display: none; /* hide the original file input */
+    }
+    .custom-file-btn {
       width: 150px;
       height: 44px; /* fixed height for consistency */
       background: var(--accent-color);
@@ -114,17 +119,31 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-
-    .upload-options input[type="file"]::-webkit-file-upload-button {
-      cursor: pointer;
-    }
-
-    .upload-options input[type="file"]:hover,
-    .upload-options #cameraButton:hover {
+    .custom-file-btn:hover {
       background: #0e8e6e;
     }
 
-    /* Hide the capture button by default; will show when camera is activated */
+    /* Camera button (same style) */
+    #cameraButton {
+      width: 150px;
+      height: 44px;
+      background: var(--accent-color);
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.95em;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    #cameraButton:hover {
+      background: #0e8e6e;
+    }
+
+    /* Capture button (hidden by default until camera is enabled) */
     #captureButton {
       display: none;
       width: 150px;
@@ -267,7 +286,11 @@
 
     <!-- Container to hold file upload and camera button side by side -->
     <div class="upload-options">
-      <input type="file" id="imageUpload" accept="image/*">
+      <!-- Hidden file input, labeled by a styled button -->
+      <label for="imageUpload" class="custom-file-btn">Choose File</label>
+      <input type="file" id="imageUpload" accept="image/*" />
+
+      <!-- Camera button -->
       <button id="cameraButton">Use Camera</button>
     </div>
 
@@ -399,7 +422,6 @@
 
     async function loadModel() {
       try {
-        // Use the raw GitHub URL for your model.json file.
         model = await tf.loadLayersModel('https://thapelosebetseba.github.io/mintelx/model.json');
         console.log("✅ Model Loaded Successfully");
       } catch (error) {
@@ -411,7 +433,6 @@
 
     async function loadMetadata() {
       try {
-        // Use the raw GitHub URL for your metadata.json file.
         let response = await fetch('https://thapelosebetseba.github.io/mintelx/metadata.json');
         let metadata = await response.json();
         labels = metadata.labels || [];
@@ -547,7 +568,9 @@ This mineral is typically found in geologically diverse regions, including mount
       document.getElementById("detailContainer").style.display = "flex";
     }
 
-    document.getElementById("imageUpload").addEventListener("change", function (event) {
+    // When the file is chosen
+    const fileInput = document.getElementById("imageUpload");
+    fileInput.addEventListener("change", function (event) {
       const file = event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
@@ -555,6 +578,7 @@ This mineral is typically found in geologically diverse regions, including mount
         const img = document.getElementById("preview");
         img.src = reader.result;
         img.style.display = "block";
+        // Wait for the image to actually load before classifying
         img.onload = classifyImage;
       };
       reader.readAsDataURL(file);
@@ -587,11 +611,19 @@ This mineral is typically found in geologically diverse regions, including mount
       canvas.height = video.videoHeight;
       const context = canvas.getContext("2d");
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Convert capture to a data URL
       const dataURL = canvas.toDataURL("image/jpeg");
       const img = document.getElementById("preview");
       img.src = dataURL;
       img.style.display = "block";
-      classifyImage();
+
+      // Wait for the new preview image to load before classification
+      img.onload = function() {
+        classifyImage();
+      };
+
+      // Stop the camera stream
       const stream = video.srcObject;
       const tracks = stream.getTracks();
       tracks.forEach(track => track.stop());
