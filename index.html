@@ -20,6 +20,11 @@
       }
     }
   </script>
+  
+  <!-- PWA Manifest & Theme Color -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#343541">
+
   <style>
     :root {
       --bg-gradient-start: #202123;
@@ -30,16 +35,19 @@
       --shadow-color: rgba(0, 0, 0, 0.5);
     }
     /* Global reset & base styles inspired by ChatGPT */
-    * { box-sizing: border-box; }
-    html, body {
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
+    }
+    html, body {
       background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      height: 100%;
-      /* Allow scrolling if content exceeds viewport */
-      overflow: auto;
+      min-height: 100vh;
+      width: 100%;
+      overflow-x: hidden; /* prevent horizontal scroll */
     }
+
     /* Three.js background canvas */
     #bgCanvas {
       position: fixed;
@@ -49,6 +57,7 @@
       height: 100%;
       z-index: 0;
     }
+
     /* Foreground container */
     .container {
       position: relative;
@@ -58,6 +67,7 @@
       border-radius: 12px;
       padding: 30px;
       max-width: 600px;
+      width: 90%;
       margin: 40px auto;
       text-align: center;
       box-shadow: 0 8px 32px var(--shadow-color);
@@ -67,8 +77,13 @@
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    h1 { margin-bottom: 20px; font-size: 1.8em; color: var(--text-color); }
-    
+
+    h1 {
+      margin-bottom: 20px;
+      font-size: 1.8em;
+      color: var(--text-color);
+    }
+
     /* Container for file input and camera button */
     .upload-options {
       display: flex;
@@ -76,48 +91,55 @@
       align-items: center;
       gap: 10px;
       margin-bottom: 20px;
+      flex-wrap: wrap; /* allow wrapping on smaller screens */
     }
-    
-    input[type="file"] {
-      padding: 12px 20px;
+
+    /* Make buttons maintain the same size across devices */
+    .upload-options input[type="file"],
+    .upload-options #cameraButton {
+      width: 150px;
+      height: 44px; /* fixed height for consistency */
       background: var(--accent-color);
       border: none;
       border-radius: 6px;
       color: #fff;
-      font-size: 1em;
+      font-size: 0.95em;
       cursor: pointer;
       transition: background 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    input[type="file"]:hover { background: #0e8e6e; }
-    
-    /* Always visible camera button, placed next to the file input */
-    #cameraButton {
-      padding: 12px 20px;
-      background: var(--accent-color);
-      border: none;
-      border-radius: 6px;
-      color: #fff;
-      font-size: 1em;
+
+    .upload-options input[type="file"]::-webkit-file-upload-button {
       cursor: pointer;
-      transition: background 0.3s ease;
     }
-    #cameraButton:hover { background: #0e8e6e; }
-    
+
+    .upload-options input[type="file"]:hover,
+    .upload-options #cameraButton:hover {
+      background: #0e8e6e;
+    }
+
     /* Hide the capture button by default; will show when camera is activated */
     #captureButton {
       display: none;
-      padding: 12px 20px;
+      width: 150px;
+      height: 44px;
       background: var(--accent-color);
       border: none;
       border-radius: 6px;
       color: #fff;
-      font-size: 1em;
+      font-size: 0.95em;
       cursor: pointer;
       transition: background 0.3s ease;
       margin-top: 10px;
     }
     #captureButton:hover { background: #0e8e6e; }
-    
+
     /* Video element for live camera feed (hidden until activated) */
     #video {
       display: none;
@@ -125,7 +147,7 @@
       margin: 20px auto;
       border-radius: 8px;
     }
-    
+
     /* Initially hide the image preview element */
     #preview {
       display: none;
@@ -135,8 +157,10 @@
       box-shadow: 0 4px 16px var(--shadow-color);
       transition: transform 0.3s ease;
     }
-    #preview:hover { transform: scale(1.05); }
-    
+    #preview:hover {
+      transform: scale(1.05);
+    }
+
     /* Predictions with animated progress bars */
     #predictions {
       margin-top: 20px;
@@ -190,6 +214,7 @@
       height: 100%;
       background: var(--accent-color);
     }
+
     /* Detail container for additional info */
     .detail-container {
       display: flex;
@@ -222,38 +247,40 @@
       border-radius: 4px;
       padding: 10px;
     }
-    /* Mobile styles */
+
+    /* Responsive container for smaller devices without changing button/h1 sizes */
     @media (max-width: 600px) {
       .container {
-        padding: 15px;
-        margin: 20px;
+        margin: 20px auto;
       }
-      h1 {
-        font-size: 1.5em;
-      }
-      /* Buttons remain constant in size; we do not adjust their font-size/padding */
+      /* We do NOT change font-size or button sizes here, preserving uniform look. */
     }
   </style>
 </head>
 <body>
   <!-- Three.js canvas for the floating 3D text background -->
   <canvas id="bgCanvas"></canvas>
-  
+
   <!-- Main foreground container -->
   <div class="container">
     <h1>Mineral Intelligence (MintelX)</h1>
+
     <!-- Container to hold file upload and camera button side by side -->
     <div class="upload-options">
       <input type="file" id="imageUpload" accept="image/*">
       <button id="cameraButton">Use Camera</button>
     </div>
+
     <!-- Video element for live camera feed -->
     <video id="video" autoplay playsinline></video>
     <!-- Capture button for taking a photo from the camera -->
     <button id="captureButton">Capture Photo</button>
+    
     <!-- The image preview element is hidden until an image is uploaded or captured -->
-    <img id="preview" alt="Image Preview" width="200">
+    <img id="preview" alt="Image Preview">
+
     <div id="predictions"></div>
+
     <!-- Detail container: Left panel (Origins), Right panel (Description + line graph) -->
     <div class="detail-container" id="detailContainer" style="display: none;">
       <div class="left-panel" id="leftPanel">
@@ -285,41 +312,47 @@
 
     const textGroup = new THREE.Group();
     scene.add(textGroup);
+
     const ambientLight = new THREE.AmbientLight(0xffffff, 1);
     scene.add(ambientLight);
 
     let labelsForText = [];
+
     function createFloatingTexts() {
       const loader = new FontLoader();
-      loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', (font) => {
-        textGroup.clear();
-        const n = labelsForText.length;
-        for (let i = 0; i < n; i++) {
-          const offset = 2 / n;
-          const y = ((i * offset) - 1) + (offset / 2);
-          const r = Math.sqrt(1 - y * y);
-          const increment = Math.PI * (3 - Math.sqrt(5));
-          const theta = i * increment;
-          const x = Math.cos(theta) * r;
-          const z = Math.sin(theta) * r;
-          const radius = 50;
-          const geometry = new TextGeometry(labelsForText[i], {
-            font: font,
-            size: 2,
-            height: 0.5,
-            curveSegments: 12,
-            bevelEnabled: false
-          });
-          const material = new THREE.MeshBasicMaterial({
-            color: 0x10a37f,
-            transparent: true,
-            opacity: 0.8
-          });
-          const textMesh = new THREE.Mesh(geometry, material);
-          textMesh.position.set(x * radius, y * radius, z * radius);
-          textGroup.add(textMesh);
+      loader.load(
+        'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
+        (font) => {
+          textGroup.clear();
+          const n = labelsForText.length;
+          for (let i = 0; i < n; i++) {
+            const offset = 2 / n;
+            const y = ((i * offset) - 1) + (offset / 2);
+            const r = Math.sqrt(1 - y * y);
+            const increment = Math.PI * (3 - Math.sqrt(5));
+            const theta = i * increment;
+            const x = Math.cos(theta) * r;
+            const z = Math.sin(theta) * r;
+            const radius = 50;
+
+            const geometry = new TextGeometry(labelsForText[i], {
+              font: font,
+              size: 2,
+              height: 0.5,
+              curveSegments: 12,
+              bevelEnabled: false
+            });
+            const material = new THREE.MeshBasicMaterial({
+              color: 0x10a37f,
+              transparent: true,
+              opacity: 0.8
+            });
+            const textMesh = new THREE.Mesh(geometry, material);
+            textMesh.position.set(x * radius, y * radius, z * radius);
+            textGroup.add(textMesh);
+          }
         }
-      });
+      );
     }
 
     function animate() {
@@ -333,23 +366,23 @@
       renderer.render(scene, camera);
     }
     animate();
+
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
       adjustCamera();
     });
+
     window.updateFloatingTexts = function(newLabels) {
       labelsForText = newLabels;
       createFloatingTexts();
     };
 
     // Dynamic resolution adjustment for Three.js to accommodate smaller devices.
-    // This function adjusts the camera's field-of-view to keep the floating texts at a consistent size.
     const originalFov = camera.fov;
     function adjustCamera() {
       if (window.innerWidth < 600) {
-        // Adjust the FOV inversely proportional to the window width (maintaining text size)
         camera.fov = originalFov * (600 / window.innerWidth);
       } else {
         camera.fov = originalFov;
@@ -411,10 +444,12 @@ This mineral is typically found in geologically diverse regions, including mount
       const currentYear = new Date().getFullYear();
       const numPoints = 20;
       const step = Math.floor((currentYear - startYear) / numPoints);
+
       for (let y = startYear; y <= currentYear; y += step) {
         years.push(y);
         amounts.push(Math.floor(Math.random() * 1000) + 100);
       }
+
       const ctx = document.getElementById("lineChart").getContext("2d");
       if(window.myLineChart) window.myLineChart.destroy();
       window.myLineChart = new Chart(ctx, {
@@ -454,29 +489,31 @@ This mineral is typically found in geologically diverse regions, including mount
         alert("Model or labels are not yet loaded. Please wait...");
         return;
       }
+
       const imageElement = document.getElementById("preview");
       const tensor = tf.browser.fromPixels(imageElement)
         .resizeNearestNeighbor([224, 224])
         .toFloat()
         .expandDims();
+
       const predictionsRaw = await model.predict(tensor).data();
       console.log("🔍 Raw Predictions:", predictionsRaw);
       const topPredictions = Array.from(predictionsRaw)
         .map((prob, index) => ({ label: labels[index] || "Unknown", probability: prob }))
         .sort((a, b) => b.probability - a.probability)
         .slice(0, 5);
-      
+
       // Check if the highest prediction is below a threshold or is "Unknown"
       const threshold = 0.2;
       const topResult = topPredictions[0];
       if (topResult.probability < threshold || topResult.label === "Unknown") {
-          document.getElementById("predictions").innerHTML = "<h3>Predictions:</h3><p>Not a Mineral</p>";
-          document.getElementById("leftPanel").innerHTML = "<h3>Origins</h3><p>Not a Mineral</p>";
-          document.getElementById("rightPanel").innerHTML = "<h3>Description</h3><p>Not a Mineral</p>";
-          document.getElementById("detailContainer").style.display = "flex";
-          return;
+        document.getElementById("predictions").innerHTML = "<h3>Predictions:</h3><p>Not a Mineral</p>";
+        document.getElementById("leftPanel").innerHTML = "<h3>Origins</h3><p>Not a Mineral</p>";
+        document.getElementById("rightPanel").innerHTML = "<h3>Description</h3><p>Not a Mineral</p>";
+        document.getElementById("detailContainer").style.display = "flex";
+        return;
       }
-      
+
       let resultsHTML = `<h3>Predictions:</h3>`;
       topPredictions.forEach((pred, index) => {
         const percentage = (pred.probability * 100).toFixed(2);
@@ -491,21 +528,21 @@ This mineral is typically found in geologically diverse regions, including mount
           </div>`;
       });
       document.getElementById("predictions").innerHTML = resultsHTML;
-      
+
       document.querySelectorAll('.bar-fill').forEach(bar => {
         const perc = bar.getAttribute('data-percentage');
         gsap.to(bar, { duration: 1, width: perc + "%", ease: "power1.out" });
       });
-      
+
       // Fetch sample details for the top prediction
       document.getElementById("leftPanel").innerHTML = "<h3>Origins</h3><p>Loading origins…</p>";
       const originsInfo = await fetchMineralOriginsFromChatGPT(topResult.label);
       document.getElementById("leftPanel").innerHTML = `<h3>Origins</h3><p>${originsInfo}</p>`;
-      
+
       document.getElementById("rightPanel").innerHTML = "<h3>Description</h3><p>Loading detailed information…</p><canvas id='lineChart'></canvas>";
       const detailedInfo = await fetchMineralDetailsFromChatGPT(topResult.label);
       document.getElementById("rightPanel").innerHTML = `<h3>Description</h3><p>${detailedInfo}</p><canvas id="lineChart"></canvas>`;
-      
+
       renderLineChart(topResult.label);
       document.getElementById("detailContainer").style.display = "flex";
     }
@@ -529,11 +566,10 @@ This mineral is typically found in geologically diverse regions, including mount
 
   <!-- Mobile Camera Support Script -->
   <script>
-    // Always show the camera button next to the file input
     const cameraButton = document.getElementById("cameraButton");
     const captureButton = document.getElementById("captureButton");
     const video = document.getElementById("video");
-    
+
     cameraButton.addEventListener("click", async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
@@ -544,7 +580,7 @@ This mineral is typically found in geologically diverse regions, including mount
         alert("Unable to access camera: " + err);
       }
     });
-    
+
     captureButton.addEventListener("click", () => {
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
@@ -563,39 +599,16 @@ This mineral is typically found in geologically diverse regions, including mount
       captureButton.style.display = "none";
     });
   </script>
-  
-  <!-- Ensure camera capture elements exist -->
+
+  <!-- Register Service Worker (PWA) -->
   <script>
-    if (!document.getElementById("captureButton")) {
-      const captureBtn = document.createElement("button");
-      captureBtn.id = "captureButton";
-      captureBtn.textContent = "Capture Photo";
-      document.querySelector(".container").appendChild(captureBtn);
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => console.log('✅ Service Worker registered:', reg))
+          .catch(err => console.error('🚨 Service Worker registration failed:', err));
+      });
     }
-    if (!document.getElementById("video")) {
-      const videoElem = document.createElement("video");
-      videoElem.id = "video";
-      videoElem.setAttribute("autoplay", "");
-      videoElem.setAttribute("playsinline", "");
-      document.querySelector(".container").appendChild(videoElem);
-    }
-  </script>
-  
-  <!-- Dynamic Resolution Adjustment Script for Three.js -->
-  <script>
-    // Adjust the Three.js camera's field of view (FOV) for smaller devices,
-    // so that the floating text remains undistorted and consistent in size.
-    const originalFov = camera.fov;
-    function adjustCamera() {
-      if (window.innerWidth < 600) {
-        camera.fov = originalFov * (600 / window.innerWidth);
-      } else {
-        camera.fov = originalFov;
-      }
-      camera.updateProjectionMatrix();
-    }
-    window.addEventListener('resize', adjustCamera);
-    adjustCamera();
   </script>
 </body>
 </html>
